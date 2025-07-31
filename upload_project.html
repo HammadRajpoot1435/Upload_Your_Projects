@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project Marketplace</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+  body {
+    background-image: url('html-code-on-computer-monitor-software-web-developer-programming-code-photo.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+
+  .card {
+    box-shadow: 0 0 10px rgba(0,0,0,0.15);
+  }
+
+  .container {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  }
+</style>
+
+</head>
+<body>
+
+<div class="container text-center mb-4">
+  <h2>💼 Project Marketplace</h2>
+  <h4>💰 Wallet Balance: $<span id="walletBalance">0</span></h4>
+  <button class="btn btn-primary me-2" onclick="addMoney('easypaisa')">Add via Easypaisa</button>
+  <button class="btn btn-secondary" onclick="addMoney('debit')">Add via Debit Card</button>
+</div>
+
+<!-- Project Posting Form -->
+<div class="container mb-5">
+  <h4>📤 Post a Project</h4>
+  <form id="projectForm" class="row g-3">
+    <div class="col-md-6">
+      <input type="text" class="form-control" id="title" placeholder="Project Title" required>
+    </div>
+    <div class="col-md-6">
+      <input type="text" class="form-control" id="description" placeholder="Project Description" required>
+    </div>
+    <div class="col-md-4">
+      <input type="number" class="form-control" id="budget" placeholder="Budget" required>
+    </div>
+    <div class="col-md-4">
+      <select class="form-select" id="forSale">
+        <option value="true">For Sale</option>
+        <option value="false">Free</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <input type="number" class="form-control" id="salePrice" placeholder="Price (if for sale)">
+    </div>
+    <div class="col-12 text-end">
+      <button type="submit" class="btn btn-success">Post Project</button>
+    </div>
+  </form>
+</div>
+
+<!-- Project List -->
+<div class="container">
+  <div class="row" id="projectList"></div>
+</div>
+
+<script>
+  const defaultProjects = [
+    { title: "AI Chatbot", description: "Smart assistant using NLP", forSale: true, salePrice: 50, budget: 500 },
+    { title: "E-Commerce Site", description: "Full frontend/backend store", forSale: true, salePrice: 40, budget: 400 },
+    { title: "Portfolio Website", description: "Modern responsive design", forSale: false, salePrice: 0, budget: 150 }
+  ];
+
+  if (!localStorage.getItem("wallet")) localStorage.setItem("wallet", "100");
+  if (!localStorage.getItem("boughtProjects")) localStorage.setItem("boughtProjects", JSON.stringify([]));
+  if (!localStorage.getItem("userProjects")) localStorage.setItem("userProjects", JSON.stringify([]));
+
+  function updateWalletDisplay() {
+    document.getElementById("walletBalance").innerText = localStorage.getItem("wallet");
+  }
+
+  function addMoney(method) {
+    let amount = prompt(`Enter amount to add via ${method === 'easypaisa' ? 'Easypaisa' : 'Debit Card'}`);
+    amount = parseFloat(amount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Invalid amount.");
+      return;
+    }
+    let current = parseFloat(localStorage.getItem("wallet"));
+    localStorage.setItem("wallet", (current + amount).toFixed(2));
+    updateWalletDisplay();
+    alert(`✅ $${amount.toFixed(2)} added via ${method === 'easypaisa' ? 'Easypaisa' : 'Debit Card'}`);
+  }
+
+  function buyProject(title, price) {
+    const balance = parseFloat(localStorage.getItem("wallet"));
+    if (balance < price) {
+      alert("❌ Not enough balance. Please add funds.");
+      return;
+    }
+
+    if (!confirm(`Buy "${title}" for $${price}?`)) return;
+
+    localStorage.setItem("wallet", (balance - price).toFixed(2));
+    updateWalletDisplay();
+
+    let bought = JSON.parse(localStorage.getItem("boughtProjects"));
+    bought.push(title);
+    localStorage.setItem("boughtProjects", JSON.stringify(bought));
+    alert(`🎉 You bought "${title}"`);
+    updateMarketplace();
+  }
+
+  function updateMarketplace() {
+    const list = document.getElementById("projectList");
+    list.innerHTML = "";
+
+    const bought = JSON.parse(localStorage.getItem("boughtProjects"));
+    const userProjects = JSON.parse(localStorage.getItem("userProjects"));
+    const allProjects = [...defaultProjects, ...userProjects];
+
+    allProjects.forEach((project) => {
+      const isBought = bought.includes(project.title);
+      const card = document.createElement("div");
+      card.className = "col-md-4 mb-4";
+
+      card.innerHTML = `
+        <div class="card p-3">
+          <h5>${project.title}</h5>
+          <p>${project.description}</p>
+          <p class="text-success">Budget: $${project.budget}</p>
+          ${project.forSale ? `<p class="text-danger">Price: $${project.salePrice}</p>` : ''}
+          ${project.forSale ? (
+            isBought
+              ? `<a class="btn btn-info" href="#">Download</a>`
+              : `<button class="btn btn-success" onclick="buyProject('${project.title}', ${project.salePrice})">Buy</button>`
+          ) : `<a class="btn btn-info" href="#">Download Free</a>`}
+        </div>`;
+      list.appendChild(card);
+    });
+  }
+
+  // Handle form submission
+  document.getElementById("projectForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const title = document.getElementById("title").value.trim();
+    const description = document.getElementById("description").value.trim();
+    const budget = parseFloat(document.getElementById("budget").value);
+    const forSale = document.getElementById("forSale").value === "true";
+    const salePrice = forSale ? parseFloat(document.getElementById("salePrice").value || 0) : 0;
+
+    if (!title || !description || isNaN(budget)) {
+      alert("Please fill all fields correctly.");
+      return;
+    }
+
+    const newProject = { title, description, budget, forSale, salePrice };
+    const userProjects = JSON.parse(localStorage.getItem("userProjects"));
+    userProjects.push(newProject);
+    localStorage.setItem("userProjects", JSON.stringify(userProjects));
+
+    alert("✅ Project posted successfully!");
+    document.getElementById("projectForm").reset();
+    updateMarketplace();
+  });
+
+  updateWalletDisplay();
+  updateMarketplace();
+</script>
+</body>
+</html>
